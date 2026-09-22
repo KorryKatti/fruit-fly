@@ -80,6 +80,12 @@ A lot of the signal is in the **sensory layer** — CartPole's expert is basical
 # assuming subcircuit_A.npz + readout.pkl already exist
 uv run python main_readout.py
 uv run python main_readout.py --episodes 20 --verbose
+
+# watch it balance (pygame window + 50K-neuron spike grid)
+uv run python visualize.py
+uv run python visualize.py --fps 60 --episodes 10
+uv run python visualize.py --no-truncate   # ignore 500-step cap, run until it falls
+uv run python visualize.py --no-spikes     # cart-pole window only
 ```
 
 To rebuild from scratch:
@@ -101,6 +107,7 @@ uv run python train_readout.py         # collect data, fit readouts, eval
 | `probe_subcircuit.py` | threshold/scale sweep, motor pool seeds |
 | `train_readout.py` | data collection + logistic regression |
 | `main_readout.py` | demo / eval loop |
+| `visualize.py` | pygame animation of the pole balancing |
 | `log.md` | what broke and what I learned |
 
 Large binaries (`*.feather`, `*.npz`, `readout.pkl`) are gitignored — regenerate or grab from the dataset link.
