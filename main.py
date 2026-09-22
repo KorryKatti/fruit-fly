@@ -1,32 +1,49 @@
-import pandas as pd
-import scipy.sparse as sp
+import gymnasium as gym
 import numpy as np
+import scipy.sparse as sp
+import time
+from neuron import LIFNeuron
+from sensors import encode_cartpole_state
+from motors import decode_motor_output
 
-# load connections
-df = pd.read_feather('connectome-weights-male-cns-v1.0-minconf-0.5.feather')
+# Load connectome
+print("Loading connectome...")
+A = sp.load_npz('connectome_adjacency.npz')
+n_neurons = A.shape[0]
+print(f"Loaded: {n_neurons} neurons, {A.nnz} synapses")
 
-print(f"Shape : {df.shape}")
-print(f"Columns: {df.columns.tolist()}")
+# Initialize neuron
+neuron = LIFNeuron(n_neurons, decay=0.95, threshold=10.0)
 
-# Remap IDs to sequential
-all_ids = pd.concat([df['body_pre'], df['body_post']]).unique()
-id_to_idx = {seg_id: idx for idx, seg_id in enumerate(sorted(all_ids))}
+# CartPole environment
+env = gym.make('CartPole-v1')
 
-df['pre_idx'] = df['body_pre'].map(id_to_idx)
-df['post_idx'] = df['body_post'].map(id_to_idx)
+# Run episodes
+n_episodes = 10
+max_steps = 500
 
-# build sparse adjacency matrix
-# A[i,j] = weight from neuron i to neuron j
-n_neurons = len(id_to_idx)
-A = sp.csr_matrix(
-        (df['weight'].values,(df['pre_idx'].values,df['post_idx'].values)),
-        shape=(n_neurons,n_neurons),
-        dtype=np.float32
-        )
+for episode in range(n_episodes):
+    state, _ = env.reset()
+    episode_reward = 0
 
-print(f"Adjacency matrix shape: {A.shape}")
-print(f"Number of synapses: {A.nnz}")
-print(f"Memory usage: {A.data.nbytes / 1e9:.2f} GB")
+    for step in range(max_steps):
+        # Sensory encoding (SC=50 matches probe_motor8)
+        sensory = encode_cartpole_state(state, n_neurons) * 50.0
+        
+        # Neural step
+        spikes = neuron.step(A, sensory)
+        
+        # Motor decoding
+        action, motor_activity = decode_motor_output(spikes)
+        
+        # Environment step
+        state, reward, terminated, truncated, _ = env.step(action)
+        episode_reward += reward
+        
+        if terminated or truncated:
+            break
+    
+    print(f"Episode {episode+1}: {int(episode_reward)} steps")
 
-# Save for later use
-sp.save_npz('connectome_adjacency.npz', A)
+env.close()
+print("Done.")

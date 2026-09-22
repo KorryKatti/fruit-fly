@@ -25,13 +25,16 @@ class LIFNeuron:
                                     spikes:binary spike output (shape (n_neurons,))
         """
         # synaptic input from previous spikes
-        synaptic = A @ self.spikes
+        # A is stored A[pre, post]; input to post i is sum_j A[j, i]*spikes[j] = (A.T @ spikes)[i]
+        synaptic = A.T @ self.spikes
 
                                  #integrate : decay volate + synaptic input + sensory
         self.v = self.decay*self.v+synaptic+sensory_input
 
-        #threshold : spike if voltage > threshold
-        self.spikes = (self.v>self.threshold).astype(np.float32)
+        # threshold : spike if voltage > threshold
+        self.spikes = (self.v > self.threshold).astype(np.float32)
 
-        # resset voltage after spike
+        # reset voltage after spike
+        self.v = np.where(self.spikes > 0, self.reset, self.v)
+
         return self.spikes

@@ -8,4 +8,18 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Large / regenerable data artifacts
 *.feather
+connectome_adjacency.npz
+subcircuit_A.npz
+*.npz
+
+# Trained model artifacts (rebuild with train_readout.py)
+readout.pkl
+readout_features.npy
+
+# Logs / local junk
+*.log
+nohup.out
+.DS_Store
